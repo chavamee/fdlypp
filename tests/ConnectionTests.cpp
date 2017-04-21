@@ -13,20 +13,22 @@ void printUsage()
     cout << "--user-id <feedly user id>" << endl;
 }
 
-class ConnectionTests : public testing::Test {
+class APIAccessTests : public testing::Test {
     public:
-        ConnectionTests() :
-            m_user {g_APIKey, g_UserID},
+        APIAccessTests() :
+            m_user {g_UserID, g_APIKey},
             m_connection (m_user)
         {
         }
 
-        virtual ~ConnectionTests()
+        virtual ~APIAccessTests()
         {
         }
 
         virtual void SetUp()
         {
+            ASSERT_TRUE(m_connection.IsAvailable());
+            ASSERT_TRUE(m_connection.CanAuthenticate());
         }
 
         virtual void TearDown()
@@ -36,6 +38,27 @@ class ConnectionTests : public testing::Test {
         Fdly::User m_user;
         Fdly m_connection;
 };
+
+TEST_F(APIAccessTests, GetCategories)
+{
+    ASSERT_NO_THROW(auto categories = m_connection.Ctgs());
+
+    for (const auto& ctg : categories) {
+
+    }
+}
+
+TEST_F(APIAccessTests, GetSubscriptions)
+{
+}
+
+TEST_F(APIAccessTests, AddedSubscriptionWithoutCategories)
+{
+    Fdly::Feed feed{ "Design Milk", "http://feeds.feedburner.com/design-milk" };
+
+    ASSERT_NO_THROW(m_connection.AddSubscription(feed));
+}
+
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

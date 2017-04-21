@@ -85,8 +85,8 @@ class Fdly {
                 UNREAD
             };
 
-            const std::string ID;
-
+            std::string Label;
+            std::string ID;
 
             unsigned int Unread()
             {
@@ -99,22 +99,73 @@ class Fdly {
             }
         };
 
-        class Feed {
+        class Categories {
             public:
+                class iterator: public std::iterator<
+                                std::forward_iterator_tag,
+                                Category,
+                                const Category*,
+                                Category&
+                                > {
+                    public:
+                        iterator()
+
+                };
+
+
+                Categories() = default;
+                Categories(Categories&& category) = default;
+                Categories& operator=(Categories&& categories) = default;
+
+                Categories(const std::vector<Category>& categories)
+                {
+                    for (const auto& ctg : categories) {
+                        m_categories[ctg.ID] = ctg;
+                    }
+                }
+
+                Categories(Categories& categories) :
+                    m_categories(categories.m_categories)
+                {
+                }
+
+                const Category& operator[](const std::string& id) const
+                {
+                    return m_categories.at(id);
+                }
+
+                void append(const Category& category)
+                {
+                    if (m_categories.find(category.ID) == m_categories.end()) {
+                        m_categories[category.ID] = category;
+                    } else {
+                        throw std::runtime_error("Category already exists");
+                    }
+                }
+
+                inline bool empty() const
+                {
+                    return m_categories.empty();
+                }
+
+            private:
+                std::map<std::string, Category> m_categories;
+        };
+
+        struct Feed {
             enum class Action {
                 READ,
                 UNREAD
             };
 
-            unsigned int Unread()
-            {
-                // TODO
-            }
-
-            unsigned int Read()
-            {
-                // TODO
-            }
+            std::string Title;
+            std::string Url;
+            std::string VisualUrl;
+            std::string ID;
+            std::string SortID;
+            int         Updated;
+            int         Added;
+            Categories  Ctgs;
         };
 
         /*
@@ -159,7 +210,7 @@ class Fdly {
          *
          * @return a map with the category label as a key and the category id as a value
          */
-        std::map<std::string, std::string> Categories() const
+        Categories Ctgs() const
         {
             auto r = cpr::Get(cpr::Url{m_rootUrl + "/categories"},
                               cpr::Header{{"Authorization", "OAuth " + m_user.AuthToken}});
@@ -172,11 +223,9 @@ class Fdly {
 
             auto jsonResp = json::parse(r.text);
 
-            std::map<std::string, std::string> categories;
+            Categories categories;
             for (auto& ctg : jsonResp) {
-                const std::string label = ctg["label"];
-                const std::string id = ctg["id"];
-                categories[label] = id;
+                categories.append(Category {.Label = ctg["label"], .ID = ctg["id"]});
             }
 
             return categories;
@@ -257,28 +306,27 @@ class Fdly {
         /**
          * Subscribe to a feed
          *
-         * @param feed       the feed to subscribe to
-         * @param title      the title for the new feed
-         * @param categories an optional list of category ids that the feed should be added to
+         * @param feed  the feed to subscribe to
          */
-        void AddSubscription(const std::string& feed, const std::string& title, const std::vector<std::string> *const categories = nullptr)
+        void AddSubscription(const Feed& feed)
         {
             json j;
-            j["id"] = "feed/" + feed;
-            j["title"] = title;
+            j["id"] = "feed/" + feed.Url;
+            j["title"] = feed.Title;
 
-            if (categories && categories->size() > 0) {
-                for (const auto& ctg : *categories) {
-                    j["categories"].push_back({{"id", ctg}});
+            if (not feed.Ctgs.empty()) {
+                for (const auto& ctg : feed.Ctgs) {
+                    j["categories"].push_back({{"id", ctg.ID}});
                 }
             } else {
-                j["categories"] = {};
+                j["categories"] = json::array();
             }
 
-            auto r = cpr::Post(cpr::Url{m_rootUrl + "/subscription"},
-                    cpr::Header{{"Authorization", "OAuth " + m_user.AuthToken}},
-                    cpr::Body{j.dump()});
+            auto r = cpr::Post(cpr::Url{m_rootUrl + "/subscriptions"},
+                               cpr::Header{{"Authorization", "OAuth " + m_user.AuthToken}},
+                               cpr::Body{j.dump()});
 
+            std::cout << j.dump() << std::endl;
             if (r.status_code not_eq 200) {
                 std::string error = "Could not add subscription: " + std::to_string(r.status_code);
                 throw std::runtime_error(error.c_str());
@@ -381,7 +429,7 @@ class Fdly {
         /**
          * Check if Feedly is available
          *
-         * @return true if we can reach feedly.com, false otherwise
+         * @return true if we can reach cloud.feedly.com, false otherwise
          */
         static bool IsAvailable();
 

@@ -18,6 +18,7 @@ ExternalProject_Add(googletest
     -Dgtest_disable_pthreads=${GTEST_DISABLE_PTHREADS}
     -DBUILD_GTEST=ON
     PREFIX "${CMAKE_CURRENT_BINARY_DIR}"
+    UPDATE_DISCONNECTED 1
     # Disable install step
     INSTALL_COMMAND ""
     )
