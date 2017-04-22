@@ -35,11 +35,11 @@ class Fdly {
                 UNREAD
             };
 
-            std::string content;
-            std::string title;
-            std::string id;
-            std::string originURL;
-            std::string originTitle;
+            std::string Content;
+            std::string Title;
+            std::string ID;
+            std::string OriginURL;
+            std::string OriginTitle;
 
             Entry(
                     std::string p_content,
@@ -47,35 +47,35 @@ class Fdly {
                     std::string p_id,
                     std::string p_originURL,
                     std::string p_originTitle) :
-                content(p_content),
-                title(p_title),
-                id(p_id),
-                originURL(p_originURL),
-                originTitle(p_originTitle)
+                Content(p_content),
+                Title(p_title),
+                ID(p_id),
+                OriginURL(p_originURL),
+                OriginTitle(p_originTitle)
             {
             }
 
             Entry(const Entry& other) :
-                content(other.content),
-                title(other.title),
-                id(other.id),
-                originURL(other.originURL),
-                originTitle(other.originTitle)
+                Content(other.Content),
+                Title(other.Title),
+                ID(other.ID),
+                OriginURL(other.OriginURL),
+                OriginTitle(other.OriginTitle)
             {
             }
 
             Entry(Entry&& other) :
-                content(other.content),
-                title(other.title),
-                id(other.id),
-                originURL(other.originURL),
-                originTitle(other.originTitle)
+                Content(other.Content),
+                Title(other.Title),
+                ID(other.ID),
+                OriginURL(other.OriginURL),
+                OriginTitle(other.OriginTitle)
             {
             }
 
             bool operator==(const Entry& rhs)
             {
-                return id == rhs.id;
+                return ID == rhs.ID;
             }
         };
 
@@ -427,6 +427,17 @@ class Fdly {
             }
         }
 
+        std::vector<Entry> Entries(
+                const Category& category,
+                bool sortByOldest = false,
+                unsigned int count = 20,
+                bool unreadOnly = true,
+                std::string continuationId = "",
+                unsigned long newerThan = 0
+                ) const
+        {
+            return Entries(category.ID, sortByOldest, count, unreadOnly, continuationId, newerThan);
+        }
 
         /**
          * Return entries for a specific category.
@@ -451,7 +462,7 @@ class Fdly {
         {
             auto params = cpr::Parameters({
                     {"ranked",       sortByOldest ? "oldest" : "newest"},
-                    {"unreadOnly",   unreadOnly ? "true" : "false"},
+                    {"unreadOnly",   unreadOnly   ? "true"   : "false" },
                     {"count",        std::to_string(count)}
                     });
 
