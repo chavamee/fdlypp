@@ -5,7 +5,7 @@ set(PROJECT_NAME_STR fdlypp)
 project(${PROJECT_NAME_STR})
 
 add_definitions(-Wall -ansi -Wno-deprecated -pthread)
-set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD 14)
 
 find_package(Threads REQUIRED)
 

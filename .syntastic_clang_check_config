@@ -1,0 +1,7 @@
+-DDEBUG
+-Wall
+-Wextra
+-Isrc
+-std=c++14
+-Icpr/include
+-Ijson/src

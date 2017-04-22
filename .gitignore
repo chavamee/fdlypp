@@ -1,6 +1,8 @@
 *.so
 *.o
 *.a
+*.log
+
 Makefile
 CMakeCache.txt
 CMakeFiles

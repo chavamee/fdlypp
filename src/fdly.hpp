@@ -11,7 +11,7 @@
 
 #include <stdexcept>
 #include <string>
-#include <map>
+#include <set>
 #include <vector>
 
 using json = nlohmann::json;
@@ -88,6 +88,21 @@ class Fdly {
             std::string Label;
             std::string ID;
 
+            friend inline bool operator>(const Category& lhs, const Category& rhs)
+            {
+                return lhs.Label.compare(rhs.Label) > 0;
+            }
+
+            friend inline bool operator<(const Category& lhs, const Category& rhs)
+            {
+                return lhs.Label.compare(rhs.Label) < 0;
+            }
+
+            inline bool operator==(const Category& rhs)
+            {
+                return this->Label == rhs.Label && this->ID == rhs.ID;
+            }
+
             unsigned int Unread()
             {
                 // TODO
@@ -101,15 +116,67 @@ class Fdly {
 
         class Categories {
             public:
-                class iterator: public std::iterator<
-                                std::forward_iterator_tag,
-                                Category,
-                                const Category*,
-                                Category&
-                                > {
+                class iterator {
                     public:
-                        iterator()
+                        using value_type = Category;
+                        using difference_type = std::ptrdiff_t;
+                        using pointer = Category*;
+                        using reference = Category&;
+                        using iterator_category = std::forward_iterator_tag;
 
+                        iterator(std::set<Category, std::less<Category>>::iterator ctgsIter) :
+                            m_ctgsIter(ctgsIter)
+                        {
+                        }
+
+                        const Category& operator*()
+                        {
+                            return *m_ctgsIter;
+                        }
+
+                        iterator& operator++()
+                        {
+                            m_ctgsIter++;
+                            return *this;
+                        }
+
+                        bool operator==(const iterator& it) { return m_ctgsIter == it.m_ctgsIter; }
+                        bool operator!=(const iterator& it) { return m_ctgsIter != it.m_ctgsIter; }
+
+                    private:
+                        std::set<Category, std::less<Category>>::iterator m_ctgsIter;
+                };
+
+                class const_iterator {
+                    public:
+                        using value_type = const Category;
+                        using difference_type = std::ptrdiff_t;
+                        using pointer = const Category*;
+                        using reference = const Category&;
+                        using iterator_category = std::forward_iterator_tag;
+
+                        const_iterator(std::set<Category, std::less<Category>>::const_iterator ctgsIter) :
+                            m_ctgsIter(ctgsIter)
+                        {
+                        }
+
+                        const Category& operator*() const
+                        {
+                            return *m_ctgsIter;
+                        }
+
+
+                        const_iterator& operator++()
+                        {
+                            m_ctgsIter++;
+                            return *this;
+                        }
+
+                        bool operator==(const const_iterator& it) const { return m_ctgsIter == it.m_ctgsIter; }
+                        bool operator!=(const const_iterator& it) const { return m_ctgsIter != it.m_ctgsIter; }
+
+                    private:
+                        std::set<Category, std::less<Category>>::const_iterator m_ctgsIter;
                 };
 
 
@@ -120,7 +187,7 @@ class Fdly {
                 Categories(const std::vector<Category>& categories)
                 {
                     for (const auto& ctg : categories) {
-                        m_categories[ctg.ID] = ctg;
+                        m_categories.insert(ctg);
                     }
                 }
 
@@ -131,16 +198,23 @@ class Fdly {
 
                 const Category& operator[](const std::string& id) const
                 {
-                    return m_categories.at(id);
+                    auto predicate = [&] (const Category& ctg) { return ctg.ID == id; };
+                    auto value = std::find_if(m_categories.begin(), m_categories.end(), predicate);
+                    if (value == std::end(m_categories)) {
+                        throw std::runtime_error("Category with ID not found");
+                    }
+                    return *value;
                 }
 
-                void append(const Category& category)
+                bool append(const Category& category)
                 {
-                    if (m_categories.find(category.ID) == m_categories.end()) {
-                        m_categories[category.ID] = category;
-                    } else {
-                        throw std::runtime_error("Category already exists");
-                    }
+                    auto p = m_categories.insert(category);
+                    return p.second;
+                }
+
+                inline std::size_t size()
+                {
+                    return m_categories.size();
                 }
 
                 inline bool empty() const
@@ -148,8 +222,28 @@ class Fdly {
                     return m_categories.empty();
                 }
 
+                iterator begin()
+                {
+                    return iterator { m_categories.begin() };
+                }
+
+                iterator end()
+                {
+                    return iterator { m_categories.end() };
+                }
+
+                const_iterator begin() const
+                {
+                    return const_iterator(m_categories.begin());
+                }
+
+                const_iterator end() const
+                {
+                    return const_iterator(m_categories.end());
+                }
+
             private:
-                std::map<std::string, Category> m_categories;
+                std::set<Category, std::less<Category>> m_categories;
         };
 
         struct Feed {

@@ -1,5 +1,6 @@
 #include "fdly.hpp"
 #include <gtest/gtest.h>
+#include <iostream>
 
 using namespace std;
 
@@ -41,10 +42,14 @@ class APIAccessTests : public testing::Test {
 
 TEST_F(APIAccessTests, GetCategories)
 {
-    ASSERT_NO_THROW(auto categories = m_connection.Ctgs());
+    auto categories = m_connection.Ctgs();
+
+    ASSERT_GT(categories.size(), 0);
 
     for (const auto& ctg : categories) {
-
+        ASSERT_FALSE(ctg.Label.empty());
+        ASSERT_FALSE(ctg.ID.empty());
+        cout << ctg.Label << " " << ctg.ID << endl;
     }
 }
 
