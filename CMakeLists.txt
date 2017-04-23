@@ -30,7 +30,8 @@ message(STATUS "=======================================================")
 
 if(BUILD_FDLY_TESTS OR BUILD_FDLY_SAMPLES)
     add_subdirectory(${EXT_PROJECTS_DIR}/cpr)
-    include_directories(${CPR_INCLUDE_DIRS} "json/src" "src")
+    add_subdirectory(${EXT_PROJECTS_DIR}/json)
+    include_directories(${CPR_INCLUDE_DIRS} ${JSON_INCLUDE_DIRS} "src")
 endif()
 
 if(BUILD_FDLY_TESTS)
