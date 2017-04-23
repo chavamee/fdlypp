@@ -19,7 +19,6 @@ ExternalProject_Add(googletest
     -DBUILD_GTEST=ON
     PREFIX "${CMAKE_CURRENT_BINARY_DIR}"
     UPDATE_DISCONNECTED 1
-    # Disable install step
     INSTALL_COMMAND ""
     )
 

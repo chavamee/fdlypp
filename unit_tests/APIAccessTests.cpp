@@ -40,43 +40,33 @@ class APIAccessTests : public testing::Test {
         Fdly m_connection;
 };
 
-TEST_F(APIAccessTests, GetSubscriptions)
-{
-}
-
 TEST_F(APIAccessTests, GetCategories)
 {
-    auto categories = m_connection.Ctgs();
+    auto categories = m_connection.Categories();
 
     EXPECT_GT(categories.size(), 0);
 
     for (const auto& ctg : categories) {
         ASSERT_FALSE(ctg.Label.empty());
         ASSERT_FALSE(ctg.ID.empty());
-        cout << ctg.Label << " " << ctg.ID << endl;
     }
 }
 
 TEST_F(APIAccessTests, GetEntries)
 {
-    auto categories = m_connection.Ctgs();
+    auto categories = m_connection.Categories();
 
-    EXPECT_GT(categories.size(), 0);
+    ASSERT_GT(categories.size(), 0);
 
     for (const auto& ctg : categories) {
-        ASSERT_FALSE(ctg.Label.empty());
-        ASSERT_FALSE(ctg.ID.empty());
 
-        cout << ctg.Label << endl << endl;
-
-        auto entries = m_connection.Entries(ctg);
+        auto entries = m_connection.GetEntries(ctg);
+        EXPECT_FALSE(entries.empty());
         for (const auto& entry : entries) {
             ASSERT_FALSE(entry.Title.empty());
             ASSERT_FALSE(entry.ID.empty());
-            cout << "   " << entry.Title << endl << "   " <<  entry.ID << endl << endl;
         }
 
-        cout << endl;
     }
 
 }

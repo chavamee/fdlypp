@@ -73,10 +73,146 @@ class Fdly {
             {
             }
 
-            bool operator==(const Entry& rhs)
+            inline bool operator==(const Entry& rhs)
             {
                 return ID == rhs.ID;
             }
+
+            friend inline bool operator>(const Entry& lhs, const Entry& rhs)
+            {
+                return lhs.Title.compare(rhs.Title) > 0;
+            }
+
+            friend inline bool operator<(const Entry& lhs, const Entry& rhs)
+            {
+                return lhs.Title.compare(rhs.Title) < 0;
+            }
+        };
+
+        class Entries {
+            public:
+                class iterator {
+                    public:
+                        using value_type = Entry;
+                        using difference_type = std::ptrdiff_t;
+                        using pointer = Entry*;
+                        using reference = Entry&;
+                        using iterator_category = std::forward_iterator_tag;
+
+                        iterator(std::vector<Entry>::iterator entriesIter) :
+                            m_entriesIter(entriesIter)
+                        {
+                        }
+
+                        Entry& operator*()
+                        {
+                            return *m_entriesIter;
+                        }
+
+                        const Entry& operator*() const
+                        {
+                            return *m_entriesIter;
+                        }
+
+                        iterator& operator++()
+                        {
+                            m_entriesIter++;
+                            return *this;
+                        }
+
+                        bool operator==(const iterator& it) { return m_entriesIter == it.m_entriesIter; }
+                        bool operator!=(const iterator& it) { return m_entriesIter != it.m_entriesIter; }
+
+                    private:
+                        std::vector<Entry>::iterator m_entriesIter;
+                };
+
+                class const_iterator {
+                    public:
+                        using value_type = const Entry;
+                        using difference_type = std::ptrdiff_t;
+                        using pointer = const Entry*;
+                        using reference = const Entry&;
+                        using iterator_category = std::forward_iterator_tag;
+
+                        const_iterator(std::vector<Entry>::const_iterator entriesIter) :
+                            m_entriesIter(entriesIter)
+                        {
+                        }
+
+                        const Entry& operator*() const
+                        {
+                            return *m_entriesIter;
+                        }
+
+                        const_iterator& operator++()
+                        {
+                            m_entriesIter++;
+                            return *this;
+                        }
+
+                        bool operator==(const const_iterator& it) { return m_entriesIter == it.m_entriesIter; }
+                        bool operator!=(const const_iterator& it) { return m_entriesIter != it.m_entriesIter; }
+
+                    private:
+                        std::vector<Entry>::const_iterator m_entriesIter;
+                };
+
+                Entries() = default;
+
+                Entries(const std::vector<Entry>& entries) :
+                    m_entries(entries)
+                {
+                }
+
+                void push_back(const Entry& entry)
+                {
+                    m_entries.push_back(entry);
+                }
+
+                void push_back(Entry&& entry)
+                {
+                    m_entries.push_back(entry);
+                }
+
+                template<class... Args>
+                void emplace_back(Args&&... args)
+                {
+                    m_entries.emplace_back(std::forward<Args>(args)...);
+                }
+
+                inline std::size_t size()
+                {
+                    return m_entries.size();
+                }
+
+                bool empty()
+                {
+                    return m_entries.empty();
+                }
+
+                iterator begin()
+                {
+                    return iterator { m_entries.begin() };
+                }
+
+                iterator end()
+                {
+                    return iterator { m_entries.end() };
+                }
+
+                const_iterator begin() const
+                {
+                    return const_iterator { m_entries.begin() };
+                }
+
+                const_iterator end() const
+                {
+                    return const_iterator { m_entries.end() };
+                }
+
+            private:
+                std::vector<Entry> m_entries;
         };
 
         struct Category {
@@ -234,12 +370,12 @@ class Fdly {
 
                 const_iterator begin() const
                 {
-                    return const_iterator(m_categories.begin());
+                    return const_iterator(m_categories.cbegin());
                 }
 
                 const_iterator end() const
                 {
-                    return const_iterator(m_categories.end());
+                    return const_iterator(m_categories.cend());
                 }
 
             private:
@@ -259,7 +395,7 @@ class Fdly {
             std::string SortID;
             int         Updated;
             int         Added;
-            Categories  Ctgs;
+            class Categories  Categories;
         };
 
         /*
@@ -304,7 +440,7 @@ class Fdly {
          *
          * @return a map with the category label as a key and the category id as a value
          */
-        Categories Ctgs() const
+        Categories Categories() const
         {
             auto r = cpr::Get(cpr::Url{m_rootUrl + "/categories"},
                               cpr::Header{{"Authorization", "OAuth " + m_user.AuthToken}});
@@ -317,7 +453,7 @@ class Fdly {
 
             auto jsonResp = json::parse(r.text);
 
-            Categories categories;
+            class Categories categories;
             for (auto& ctg : jsonResp) {
                 categories.append(Category {.Label = ctg["label"], .ID = ctg["id"]});
             }
@@ -408,8 +544,8 @@ class Fdly {
             j["id"] = "feed/" + feed.Url;
             j["title"] = feed.Title;
 
-            if (not feed.Ctgs.empty()) {
-                for (const auto& ctg : feed.Ctgs) {
+            if (not feed.Categories.empty()) {
+                for (const auto& ctg : feed.Categories) {
                     j["categories"].push_back({{"id", ctg.ID}});
                 }
             } else {
@@ -427,7 +563,7 @@ class Fdly {
             }
         }
 
-        std::vector<Entry> Entries(
+        Entries GetEntries(
                 const Category& category,
                 bool sortByOldest = false,
                 unsigned int count = 20,
@@ -436,7 +572,7 @@ class Fdly {
                 unsigned long newerThan = 0
                 ) const
         {
-            return Entries(category.ID, sortByOldest, count, unreadOnly, continuationId, newerThan);
+            return GetEntries(category.ID, sortByOldest, count, unreadOnly, continuationId, newerThan);
         }
 
         /**
@@ -451,7 +587,7 @@ class Fdly {
          *
          * @return a list of entries
          */
-        std::vector<Entry> Entries(
+        Entries GetEntries(
                 const std::string& categoryId,
                 bool sortByOldest = false,
                 unsigned int count = 20,
@@ -495,7 +631,7 @@ class Fdly {
 
             auto j = json::parse(r.text);
 
-            std::vector<Fdly::Entry> entries;
+            Entries entries;
             for (auto& item : j["items"]) {
                 std::string title = item["title"];
                 std::string id = item["id"];

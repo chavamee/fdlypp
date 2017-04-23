@@ -1,32 +1,46 @@
 cmake_minimum_required(VERSION 2.8.8)
 
 set(PROJECT_NAME_STR fdlypp)
-
 project(${PROJECT_NAME_STR})
+
+set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)
 
 add_definitions(-Wall -ansi -Wno-deprecated -pthread)
 set (CMAKE_CXX_STANDARD 14)
 
 find_package(Threads REQUIRED)
+macro(fdly_option OPTION_NAME OPTION_TEXT OPTION_DEFAULT)
+    option(${OPTION_NAME} ${OPTION_TEXT} ${OPTION_DEFAULT})
+    if(DEFINED ENV{${OPTION_NAME}})
+        # Allow setting the option through an environment variable
+        set(${OPTION_NAME} $ENV{${OPTION_NAME}})
+    endif()
+    if(${OPTION_NAME})
+        add_definitions(-D${OPTION_NAME})
+    endif()
+    message(STATUS "  ${OPTION_NAME}: ${${OPTION_NAME}}")
+endmacro()
 
-set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)
 
-add_subdirectory(cpr)
-add_subdirectory(${EXT_PROJECTS_DIR}/gtest)
+message(STATUS "Fdly CMake Options")
+message(STATUS "=======================================================")
+fdly_option(BUILD_FDLY_TESTS   "Set to ON to build fdly tests"   OFF)
+fdly_option(BUILD_FDLY_SAMPLES "Set to ON to build fdly samples" ON)
+message(STATUS "=======================================================")
 
-include_directories(${CPR_INCLUDE_DIRS} "json/src" "src")
+if(BUILD_FDLY_TESTS OR BUILD_FDLY_SAMPLES)
+    add_subdirectory(${EXT_PROJECTS_DIR}/cpr)
+    include_directories(${CPR_INCLUDE_DIRS} "json/src" "src")
+endif()
 
-enable_testing()
-set(PROJECT_TEST_NAME ${PROJECT_NAME_STR}_test)
-include_directories(${GTEST_INCLUDE_DIRS})
+if(BUILD_FDLY_TESTS)
+    add_subdirectory(${EXT_PROJECTS_DIR}/gtest)
+    include_directories(${GTEST_INCLUDE_DIRS})
+    enable_testing()
+    set(PROJECT_TEST_NAME ${PROJECT_NAME_STR}_test)
+    add_subdirectory(unit_tests)
+endif()
 
-
-file(GLOB TEST_SRC_FILES ${PROJECT_SOURCE_DIR}/tests/*.cpp)
-add_executable(${PROJECT_TEST_NAME} ${TEST_SRC_FILES})
-add_dependencies(${PROJECT_TEST_NAME} cpr googletest)
-target_link_libraries(${PROJECT_TEST_NAME}
-    ${CPR_LIBRARIES}
-	${GTEST_LIBS_DIR}/libgtest.a
-	${GTEST_LIBS_DIR}/libgtest_main.a)
-target_link_libraries(${PROJECT_TEST_NAME} ${CMAKE_THREAD_LIBS_INIT})
-add_test(test1 ${PROJECT_TEST_NAME})
+if(BUILD_FDLY_SAMPLES)
+    add_subdirectory(samples)
+endif()
