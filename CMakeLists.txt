@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.8)
 
 set(PROJECT_NAME_STR fdlypp)
-project(${PROJECT_NAME_STR})
+project(${PROJECT_NAME_STR} C CXX)
 
 set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)
 
@@ -26,9 +26,16 @@ message(STATUS "Fdly CMake Options")
 message(STATUS "=======================================================")
 fdly_option(BUILD_FDLY_TESTS   "Set to ON to build fdly tests"   OFF)
 fdly_option(BUILD_FDLY_SAMPLES "Set to ON to build fdly samples" ON)
+fdly_option(BUILD_FDLY_DEPENDS "Set to ON to build fdly dependencies" ON)
 message(STATUS "=======================================================")
 
-if(BUILD_FDLY_TESTS OR BUILD_FDLY_SAMPLES)
+if(NOT BUILD_FDLY_DEPENDS AND (BUILD_FDLY_TESTS OR BUILD_FDLY_SAMPLES))
+    add_subdirectory(${EXT_PROJECTS_DIR}/cpr)
+    add_subdirectory(${EXT_PROJECTS_DIR}/json)
+    include_directories(${CPR_INCLUDE_DIRS} ${JSON_INCLUDE_DIRS} "src")
+endif()
+
+if(BUILD_FDLY_DEPENDS)
     add_subdirectory(${EXT_PROJECTS_DIR}/cpr)
     add_subdirectory(${EXT_PROJECTS_DIR}/json)
     include_directories(${CPR_INCLUDE_DIRS} ${JSON_INCLUDE_DIRS} "src")
