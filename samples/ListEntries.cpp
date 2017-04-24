@@ -36,7 +36,7 @@ int main (int argc, char** argv)
     Fdly::User user {userID, apiKey};
     Fdly fdly {user};
 
-    auto categories = fdly.Categories();
+    auto categories = fdly.GetCategories();
     for (const auto& ctg : categories) {
         cout << "==== " << ctg.Label << "(" << ctg.ID << ")" << " ====" << endl;
 

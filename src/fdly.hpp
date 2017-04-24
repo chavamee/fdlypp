@@ -317,7 +317,9 @@ class Fdly {
 
 
                 Categories() = default;
+                Categories(const Categories& categories) = default;
                 Categories(Categories&& category) = default;
+                Categories& operator=(Categories& categories) = default;
                 Categories& operator=(Categories&& categories) = default;
 
                 Categories(const std::vector<Category>& categories)
@@ -335,6 +337,16 @@ class Fdly {
                 const Category& operator[](const std::string& id) const
                 {
                     auto predicate = [&] (const Category& ctg) { return ctg.ID == id; };
+                    auto value = std::find_if(m_categories.begin(), m_categories.end(), predicate);
+                    if (value == std::end(m_categories)) {
+                        throw std::runtime_error("Category with ID not found");
+                    }
+                    return *value;
+                }
+
+                const Category& getByLabel(const std::string& label) const
+                {
+                    auto predicate = [&] (const Category& ctg) { return ctg.Label == label; };
                     auto value = std::find_if(m_categories.begin(), m_categories.end(), predicate);
                     if (value == std::end(m_categories)) {
                         throw std::runtime_error("Category with ID not found");
@@ -398,6 +410,127 @@ class Fdly {
             class Categories  Categories;
         };
 
+        class Feeds {
+            public:
+                class iterator {
+                    public:
+                        using value_type = Feed;
+                        using difference_type = std::ptrdiff_t;
+                        using pointer = Feed*;
+                        using reference = Feed&;
+                        using iterator_category = std::forward_iterator_tag;
+
+                        iterator(std::vector<Feed>::iterator feedsIter) :
+                            m_feedsIter(feedsIter)
+                        {
+                        }
+
+                        Feed& operator*()
+                        {
+                            return *m_feedsIter;
+                        }
+
+                        const Feed& operator*() const
+                        {
+                            return *m_feedsIter;
+                        }
+
+                        iterator& operator++()
+                        {
+                            m_feedsIter++;
+                            return *this;
+                        }
+
+                        bool operator==(const iterator& it) { return m_feedsIter == it.m_feedsIter; }
+                        bool operator!=(const iterator& it) { return m_feedsIter != it.m_feedsIter; }
+
+                    private:
+                        std::vector<Feed>::iterator m_feedsIter;
+                };
+
+                class const_iterator {
+                    public:
+                        using value_type = const Feed;
+                        using difference_type = std::ptrdiff_t;
+                        using pointer = const Feed*;
+                        using reference = const Feed&;
+                        using iterator_category = std::forward_iterator_tag;
+
+                        const_iterator(std::vector<Feed>::const_iterator feedsIter) :
+                            m_feedsIter(feedsIter)
+                        {
+                        }
+
+                        const Feed& operator*() const
+                        {
+                            return *m_feedsIter;
+                        }
+
+                        const_iterator& operator++()
+                        {
+                            m_feedsIter++;
+                            return *this;
+                        }
+
+                        bool operator==(const const_iterator& it) { return m_feedsIter == it.m_feedsIter; }
+                        bool operator!=(const const_iterator& it) { return m_feedsIter != it.m_feedsIter; }
+
+                    private:
+                        std::vector<Feed>::const_iterator m_feedsIter;
+                };
+
+                Feeds() = default;
+
+                Feeds(const std::vector<Feed>& feeds) :
+                    m_feeds(feeds)
+                {
+                }
+
+                void push_back(const Feed& feed)
+                {
+                    m_feeds.push_back(feed);
+                }
+
+                void push_back(Feed&& feed)
+                {
+                    m_feeds.push_back(feed);
+                }
+
+                inline std::size_t size()
+                {
+                    return m_feeds.size();
+                }
+
+                bool empty()
+                {
+                    return m_feeds.empty();
+                }
+
+                iterator begin()
+                {
+                    return iterator { m_feeds.begin() };
+                }
+
+                iterator end()
+                {
+                    return iterator { m_feeds.end() };
+                }
+
+                const_iterator begin() const
+                {
+                    return const_iterator { m_feeds.begin() };
+                }
+
+                const_iterator end() const
+                {
+                    return const_iterator { m_feeds.end() };
+                }
+
+            private:
+                std::vector<Feed> m_feeds;
+
+        };
+
         /*
          * Default constructor is not allowed
          */
@@ -440,7 +573,7 @@ class Fdly {
          *
          * @return a map with the category label as a key and the category id as a value
          */
-        Categories Categories() const
+        Categories GetCategories() const
         {
             auto r = cpr::Get(cpr::Url{m_rootUrl + "/categories"},
                               cpr::Header{{"Authorization", "OAuth " + m_user.AuthToken}});
@@ -453,7 +586,7 @@ class Fdly {
 
             auto jsonResp = json::parse(r.text);
 
-            class Categories categories;
+            Categories categories;
             for (auto& ctg : jsonResp) {
                 categories.append(Category {.Label = ctg["label"], .ID = ctg["id"]});
             }
@@ -484,7 +617,7 @@ class Fdly {
 
             auto r = cpr::Post(cpr::Url{m_rootUrl + "/markers"},
                     cpr::Header{{"Authorization", "OAuth " + m_user.AuthToken},
-                    {"Content-Type", "application/json"}},
+                                {"Content-Type", "application/json"}},
                     cpr::Body{j.dump()});
 
             if (r.status_code not_eq 200) {
@@ -525,12 +658,52 @@ class Fdly {
                 auto r = cpr::Post(cpr::Url{m_rootUrl + "/markers"},
                         cpr::Body{j.dump()},
                         cpr::Header{{"Authorization", "OAuth " + m_user.AuthToken},
-                        {"Content-Type", "application/json"}});
+                                    {"Content-Type", "application/json"}});
                 if (r.status_code not_eq 200) {
-                    std::string error = "Could not mark entires with " + ActionToString(action) + ": " + std::to_string(r.status_code);
+                    std::string error = "Could not mark entries with " + ActionToString(action) + ": " + std::to_string(r.status_code);
                     throw std::runtime_error(error.c_str());
                 }
             }
+        }
+
+        /**
+         * Get list of subscribed feeds
+         */
+        Feeds GetSubscriptions()
+        {
+            auto r = cpr::Get(cpr::Url{m_rootUrl + "/subscriptions"},
+                              cpr::Header{{"Authorization", "OAuth " + m_user.AuthToken}});
+
+            if (r.status_code not_eq 200) {
+                std::string error = "Could not get subscriptions: " + std::to_string(r.status_code);
+                throw std::runtime_error(error.c_str());
+            }
+
+            auto j = json::parse(r.text);
+
+            Feeds feeds;
+            for (const auto& feed : j) {
+                Feed tmp;
+                tmp.Title = feed["title"];
+                tmp.ID = feed["id"];
+                tmp.Url = feed["website"];
+                tmp.VisualUrl = feed["visualUrl"];
+                tmp.Updated = feed["updated"];
+
+                Categories ctgs {};
+                for (const auto& ctg : feed["categories"]) {
+                    Category tmp;
+                    tmp.Label = ctg["label"];
+                    tmp.ID = ctg["id"];
+                    ctgs.append(tmp);
+                }
+
+                tmp.Categories = ctgs;
+
+                feeds.push_back(tmp);
+            }
+
+            return feeds;
         }
 
         /**
@@ -546,17 +719,18 @@ class Fdly {
 
             if (not feed.Categories.empty()) {
                 for (const auto& ctg : feed.Categories) {
-                    j["categories"].push_back({{"id", ctg.ID}});
+                    j["categories"].push_back({{"label", ctg.Label},
+                                               {"id",    ctg.ID}});
                 }
             } else {
                 j["categories"] = json::array();
             }
 
             auto r = cpr::Post(cpr::Url{m_rootUrl + "/subscriptions"},
-                               cpr::Header{{"Authorization", "OAuth " + m_user.AuthToken}},
+                               cpr::Header{{"Authorization", "OAuth " + m_user.AuthToken},
+                                           {"Content-Type", "application/json"}},
                                cpr::Body{j.dump()});
 
-            std::cout << j.dump() << std::endl;
             if (r.status_code not_eq 200) {
                 std::string error = "Could not add subscription: " + std::to_string(r.status_code);
                 throw std::runtime_error(error.c_str());

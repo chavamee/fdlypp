@@ -42,7 +42,7 @@ class APIAccessTests : public testing::Test {
 
 TEST_F(APIAccessTests, GetCategories)
 {
-    auto categories = m_connection.Categories();
+    auto categories = m_connection.GetCategories();
 
     EXPECT_GT(categories.size(), 0);
 
@@ -54,12 +54,11 @@ TEST_F(APIAccessTests, GetCategories)
 
 TEST_F(APIAccessTests, GetEntries)
 {
-    auto categories = m_connection.Categories();
+    auto categories = m_connection.GetCategories();
 
     ASSERT_GT(categories.size(), 0);
 
     for (const auto& ctg : categories) {
-
         auto entries = m_connection.GetEntries(ctg);
         EXPECT_FALSE(entries.empty());
         for (const auto& entry : entries) {
@@ -71,9 +70,25 @@ TEST_F(APIAccessTests, GetEntries)
 
 }
 
-TEST_F(APIAccessTests, AddedSubscriptionWithoutCategories)
+TEST_F(APIAccessTests, GetSubscriptions)
+{
+    auto feeds = m_connection.GetSubscriptions();
+
+    ASSERT_GT(feeds.size(), 0);
+
+    for (const auto& feed : feeds) {
+        ASSERT_FALSE(feed.Title.empty());
+        ASSERT_FALSE(feed.ID.empty());
+    }
+}
+
+TEST_F(APIAccessTests, AddedSubscription)
 {
     Fdly::Feed feed{ "Design Milk", "http://feeds.feedburner.com/design-milk" };
+
+    auto categories = m_connection.GetCategories();
+
+    feed.Categories.append(categories.getByLabel("design"));
 
     ASSERT_NO_THROW(m_connection.AddSubscription(feed));
 }
