@@ -4,6 +4,7 @@ set(PROJECT_NAME_STR fdlypp)
 project(${PROJECT_NAME_STR} C CXX)
 
 set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)
+set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 
 add_definitions(-Wall -ansi -Wno-deprecated -pthread)
 set (CMAKE_CXX_STANDARD 14)
@@ -36,6 +37,9 @@ if(NOT BUILD_FDLY_DEPENDS AND (BUILD_FDLY_TESTS OR BUILD_FDLY_SAMPLES))
 endif()
 
 if(BUILD_FDLY_DEPENDS)
+    set(DEPENDS_INC_DIR ${PROJECT_BINARY_DIR}/depends/inc)
+    set(DEPENDS_LIB_DIR ${PROJECT_BINARY_DIR}/depends/lib)
+    file (MAKE_DIRECTORY ${DEPENDS_LIB_DIR} ${DEPENDS_INC_DIR})
     add_subdirectory(${EXT_PROJECTS_DIR}/cpr)
     add_subdirectory(${EXT_PROJECTS_DIR}/json)
     include_directories(${CPR_INCLUDE_DIRS} ${JSON_INCLUDE_DIRS} "src")

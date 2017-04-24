@@ -17,3 +17,5 @@ ExternalProject_Add(json
 
 ExternalProject_Get_Property(json source_dir)
 set(JSON_INCLUDE_DIRS ${source_dir}/src PARENT_SCOPE)
+
+file(COPY ${source_dir}/src/json.hpp DESTINATION ${DEPENDS_INC_DIR})
