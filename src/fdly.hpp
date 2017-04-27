@@ -6,7 +6,7 @@
 #ifndef FDLY_HEADER_SRC_H
 #define FDLY_HEADER_SRC_H
 
-#include "json.hpp"
+#include <json.hpp>
 #include <cpr/cpr.h>
 
 #include <stdexcept>
@@ -544,7 +544,7 @@ class Fdly {
         Fdly(User& user, std::string apiVersion = APIVersion3) :
             m_user(user),
             m_effectiveAPIVersion(apiVersion),
-            m_rootUrl(Fdly::FeedlyUrl + "/" + apiVersion)
+            m_rootUrl(std::string(Fdly::FeedlyUrl) + "/" + m_effectiveAPIVersion)
         {
         }
 
@@ -846,11 +846,11 @@ class Fdly {
          *
          * @return true if we can reach cloud.feedly.com, false otherwise
          */
-        static bool IsAvailable();
+        static inline bool IsAvailable();
 
-        static const std::string APIVersion3;
+        static constexpr const char* FeedlyUrl = "https://cloud.feedly.com";
 
-        static const std::string FeedlyUrl;
+        static constexpr const char* APIVersion3 = "v3";
 
     private:
         inline std::string ActionToString(Entry::Action action) const
@@ -890,13 +890,9 @@ class Fdly {
         }
 
         Fdly::User m_user;
-        std::string m_effectiveAPIVersion;
+        const std::string m_effectiveAPIVersion;
         const std::string m_rootUrl;
 };
-
-const std::string Fdly::FeedlyUrl = "https://cloud.feedly.com";
-
-const std::string Fdly::APIVersion3 = "v3";
 
 bool Fdly::IsAvailable()
 {
@@ -907,4 +903,5 @@ bool Fdly::IsAvailable()
 
     return false;
 }
+
 #endif /* ifndef FEEDLY_H_ */
